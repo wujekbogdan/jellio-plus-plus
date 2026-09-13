@@ -18,7 +18,7 @@ Every fork gets another `+`. We don't make the rules.
 - **Jellyseerr Integration** - Optional integration with Jellyseerr for content requests
 - **Multiple Formats** - Supports various video codecs and quality options.
 
-## How it Works:
+## How it Works
 
 ### Browsing Your Library in Stremio
 
@@ -32,7 +32,11 @@ Enable the optional Jellyseerr functionality to be able to directly request medi
 
 ![Jellyseerr Integration](assets/jellyseer-integration.PNG)
 
-### Installation:
+### Download
+
+[Download](https://github.com/wujekbogdan/jellio-plus-plus/releases/latest) the most recent `jellio_<version>.zip` from the releases page.
+
+### Installation
 
 NOTICE: Your Jellyfin instance needs to be reachable over HTTPS because Stremio requires HTTPS for addon URLs. You need an HTTPS tunnel such as Cloudflare Tunnel, Tailscale Funnel, ngrok, etc.
 
