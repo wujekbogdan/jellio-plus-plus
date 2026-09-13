@@ -26,6 +26,7 @@
     {
       "Codec": "subrip",
       "Language": "pol",
+      "LocalizedLanguage": "Polish",
       "TimeBase": "1/1000",
       "VideoRange": "Unknown",
       "VideoRangeType": "Unknown",

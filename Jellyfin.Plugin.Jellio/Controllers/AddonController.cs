@@ -212,7 +212,7 @@ public class AddonController : ControllerBase
                     KeyValuePair<string, string?>[] parameters =
                     [
                         new("mediaSourceId", source.Id),
-                        new("api_key", authToken),
+                        new("ApiKey", authToken),
                         new("videoCodec", string.Join(',', videoCodecs)),
                         new("audioCodec", string.Join(',', audioCodecs)),
                         .. selectedTrack,

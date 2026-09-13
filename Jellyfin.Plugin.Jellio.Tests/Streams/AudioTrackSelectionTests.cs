@@ -34,8 +34,8 @@ public class AudioTrackSelectionTests
     public void ForSource_LabelsTracksTheWayJellyfinDoes()
     {
         var source = SourceWith(
-            Audio(index: 1, codec: "eac3", language: "eng", channelLayout: "5.1", isDefault: true),
-            Audio(index: 2, codec: "dts", language: "pol", channelLayout: "stereo"));
+            Audio(index: 1, codec: "eac3", language: TrackLanguage.English, channelLayout: "5.1", isDefault: true),
+            Audio(index: 2, codec: "dts", language: TrackLanguage.Polish, channelLayout: "stereo"));
 
         var choices = AudioTrackSelection.ForSource(source);
 
@@ -92,7 +92,7 @@ public class AudioTrackSelectionTests
     private static MediaStream Audio(
         int index,
         string? codec = "eac3",
-        string? language = null,
+        TrackLanguage? language = null,
         string? channelLayout = null,
         bool isDefault = false) =>
         new()
@@ -100,8 +100,16 @@ public class AudioTrackSelectionTests
             Type = MediaStreamType.Audio,
             Index = index,
             Codec = codec,
-            Language = language,
+            Language = language?.Code,
+            LocalizedLanguage = language?.DisplayName,
             ChannelLayout = channelLayout,
             IsDefault = isDefault,
         };
+
+    private sealed record TrackLanguage(string Code, string DisplayName)
+    {
+        public static TrackLanguage English { get; } = new("eng", "English");
+
+        public static TrackLanguage Polish { get; } = new("pol", "Polish");
+    }
 }

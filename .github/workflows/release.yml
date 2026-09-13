@@ -71,7 +71,7 @@ jobs:
         id: jprm
         with:
           # Action expects 'dotnet-target' (not dotnet-framework)
-          dotnet-target: 'net9.0'
+          dotnet-target: 'net10.0'
           version: ${{ steps.version.outputs.version_number }}
 
       - name: Get Zip Filename and Path
