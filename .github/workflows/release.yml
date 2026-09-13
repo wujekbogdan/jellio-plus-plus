@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: metadata
-          clean: true
+          path: metadata
 
       - name: Update Repository Manifest using jprm
         run: |
@@ -107,7 +107,7 @@ jobs:
           echo "Installing jprm..."
           python3 -m pip install --user jprm
 
-          MANIFEST_FILE="./jellyfin-repo-manifest.json"
+          MANIFEST_FILE="./metadata/jellyfin-repo-manifest.json"
           TEMP_PLUGIN_ZIP="/home/runner/work/plugin.zip.tmp"
 
           PLUGIN_DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ steps.filename.outputs.zip_basename }}"
@@ -127,6 +127,7 @@ jobs:
       - name: Commit Updated Repository Manifest
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
+          repository: metadata
           branch: metadata
           commit_message: "repo(release): update manifest for ${{ steps.version.outputs.version_number }}"
           file_pattern: jellyfin-repo-manifest.json
