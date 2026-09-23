@@ -9,6 +9,8 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Plugin.Jellio.Authentication;
 using Jellyfin.Plugin.Jellio.Helpers;
 using Jellyfin.Plugin.Jellio.Models;
 using Jellyfin.Plugin.Jellio.Streams;
@@ -144,15 +146,8 @@ public class AddonController : ControllerBase
         return meta;
     }
 
-    private OkObjectResult GetStreamsResult(Guid userId, IReadOnlyList<BaseItem> items, string authToken, string? publicBaseUrl = null)
+    private OkObjectResult GetStreamsResult(User user, IReadOnlyList<BaseItem> items, string authToken, string? publicBaseUrl = null)
     {
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            LogBuffer.AddLog($"[Stream] User not found: {userId}", LogLevel.Warning);
-            return Ok(new { streams = Array.Empty<object>() });
-        }
-
         LogBuffer.AddLog($"[Stream] Processing {items.Count} item(s) for user {user.Username}", LogLevel.Info);
         var baseUrl = GetBaseUrl(publicBaseUrl);
         LogBuffer.AddLog($"[Stream] Base URL: {baseUrl}", LogLevel.Info);
@@ -249,11 +244,9 @@ public class AddonController : ControllerBase
     }
 
     [HttpGet("manifest.json")]
-    public IActionResult GetManifest([ConfigFromBase64Json] ConfigModel config)
+    public IActionResult GetManifest([ConfigFromBase64Json] ConfigModel config, [AuthenticatedUser] User user)
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
-
-        var userLibraries = LibraryHelper.GetUserLibraries(userId, _userManager, _userViewManager, _dtoService);
+        var userLibraries = LibraryHelper.GetUserLibraries(user.Id, _userManager, _userViewManager, _dtoService);
         userLibraries = Array.FindAll(userLibraries, l => config.LibrariesGuids.Contains(l.Id));
         if (userLibraries.Length != config.LibrariesGuids.Count)
         {
@@ -313,21 +306,20 @@ public class AddonController : ControllerBase
     [HttpGet("catalog/{stremioType}/{catalogId:guid}.json")]
     public IActionResult GetCatalog(
         [ConfigFromBase64Json] ConfigModel config,
+        [AuthenticatedUser] User user,
         StremioType stremioType,
         Guid catalogId,
         string? extra = null
     )
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
-
-        var userLibraries = LibraryHelper.GetUserLibraries(userId, _userManager, _userViewManager, _dtoService);
+        var userLibraries = LibraryHelper.GetUserLibraries(user.Id, _userManager, _userViewManager, _dtoService);
         var catalogLibrary = Array.Find(userLibraries, l => l.Id == catalogId);
         if (catalogLibrary == null)
         {
             return NotFound();
         }
 
-        var item = _libraryManager.GetParentItem(catalogLibrary.Id, userId);
+        var item = _libraryManager.GetParentItem(catalogLibrary.Id, user.Id);
         if (item is not Folder folder)
         {
             folder = _libraryManager.GetUserRootFolder();
@@ -353,12 +345,6 @@ public class AddonController : ControllerBase
             Fields = [ItemFields.ProviderIds, ItemFields.Overview, ItemFields.Genres],
         };
 
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            return Unauthorized();
-        }
-
         var query = new InternalItemsQuery(user)
         {
             Recursive = true, // need this for search to work
@@ -380,22 +366,15 @@ public class AddonController : ControllerBase
     [HttpGet("meta/{stremioType}/jelliopp:{mediaId:guid}.json")]
     public IActionResult GetMeta(
         [ConfigFromBase64Json] ConfigModel config,
+        [AuthenticatedUser] User user,
         StremioType stremioType,
         Guid mediaId
     )
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
-
-        var item = _libraryManager.GetItemById<BaseItem>(mediaId, userId);
+        var item = _libraryManager.GetItemById<BaseItem>(mediaId, user.Id);
         if (item == null)
         {
             return NotFound();
-        }
-
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            return Unauthorized();
         }
 
         var dtoOptions = new DtoOptions
@@ -436,14 +415,14 @@ public class AddonController : ControllerBase
     [HttpGet("stream/{stremioType}/jelliopp:{mediaId:guid}.json")]
     public IActionResult GetStream(
         [ConfigFromBase64Json] ConfigModel config,
+        [AuthenticatedUser] User user,
         StremioType stremioType,
         Guid mediaId
     )
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
         LogBuffer.AddLog($"[Stream] Stream request for {stremioType} with ID: {mediaId}", LogLevel.Info);
 
-        var item = _libraryManager.GetItemById<BaseItem>(mediaId, userId);
+        var item = _libraryManager.GetItemById<BaseItem>(mediaId, user.Id);
         if (item == null)
         {
             LogBuffer.AddLog($"[Stream] Item not found: {mediaId}", LogLevel.Warning);
@@ -453,7 +432,7 @@ public class AddonController : ControllerBase
         }
 
         LogBuffer.AddLog($"[Stream] Found item: {item.Name} (Type: {item.GetType().Name}, Id: {item.Id})", LogLevel.Info);
-        var result = GetStreamsResult(userId, [item], config.AuthToken, config.PublicBaseUrl);
+        var result = GetStreamsResult(user, [item], config.AuthToken, config.PublicBaseUrl);
         LogBuffer.AddLog($"[Stream] Returning stream result for {item.Name}", LogLevel.Info);
         return result;
     }
@@ -461,17 +440,10 @@ public class AddonController : ControllerBase
     [HttpGet("stream/movie/tt{imdbId}.json")]
     public async Task<IActionResult> GetStreamImdbMovie(
         [ConfigFromBase64Json] ConfigModel config,
+        [AuthenticatedUser] User user,
         string imdbId
     )
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
-
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            return Unauthorized();
-        }
-
         var query = new InternalItemsQuery(user)
         {
             HasAnyProviderId = new Dictionary<string, string> { ["Imdb"] = $"tt{imdbId}" },
@@ -500,26 +472,19 @@ public class AddonController : ControllerBase
             return Ok(new { streams = Array.Empty<object>() });
         }
 
-        return GetStreamsResult(userId, items, config.AuthToken, config.PublicBaseUrl);
+        return GetStreamsResult(user, items, config.AuthToken, config.PublicBaseUrl);
     }
 
     [HttpGet("stream/series/tt{imdbId}:{seasonNum:int}:{episodeNum:int}.json")]
     public async Task<IActionResult> GetStreamImdbTv(
         [ConfigFromBase64Json] ConfigModel config,
+        [AuthenticatedUser] User user,
         string imdbId,
         int seasonNum,
         int episodeNum
     )
     {
-        var userId = (Guid)HttpContext.Items["JellioUserId"]!;
         LogBuffer.AddLog($"[Stream] TV Episode request: IMDB={imdbId}, Season={seasonNum}, Episode={episodeNum}", LogLevel.Info);
-
-        var user = _userManager.GetUserById(userId);
-        if (user == null)
-        {
-            LogBuffer.AddLog($"[Stream] User not found: {userId}", LogLevel.Warning);
-            return Unauthorized();
-        }
 
         var seriesQuery = new InternalItemsQuery(user)
         {
@@ -587,6 +552,6 @@ public class AddonController : ControllerBase
         }
 
         LogBuffer.AddLog($"[Stream] Returning streams for {episodeItems.Count} episode(s)", LogLevel.Info);
-        return GetStreamsResult(userId, episodeItems, config.AuthToken, config.PublicBaseUrl);
+        return GetStreamsResult(user, episodeItems, config.AuthToken, config.PublicBaseUrl);
     }
 }

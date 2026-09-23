@@ -6,6 +6,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Plugin.Jellio.Authentication;
 using Jellyfin.Plugin.Jellio.Helpers;
 using Jellyfin.Plugin.Jellio.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -75,6 +77,7 @@ public class RequestController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> CreateRequest(
         [ConfigFromBase64Json] ConfigModel? config,
+        [AuthenticatedUser] User user,
         [FromQuery] string type,
         [FromQuery] int? tmdbId,
         [FromQuery] string? imdbId,
@@ -97,19 +100,9 @@ public class RequestController : ControllerBase
                 return BadRequest("Invalid or missing configuration.");
             }
 
-            // Get userId from context (set by ConfigAuthorize filter)
-            var userId = (Guid?)HttpContext.Items["JellioUserId"];
-            if (userId == null)
-            {
-                var errorMsg = "[Jellyseerr] ERROR: No user ID in context";
-                Console.WriteLine(errorMsg);
-                LogBuffer.AddLog(errorMsg, LogLevel.Error);
-                return Unauthorized();
-            }
-
             // Check for duplicate request (with lock to prevent race condition)
             var identifier = imdbId ?? tmdbId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? title ?? "unknown";
-            if (!TryMarkAsProcessing(userId.Value, identifier, type))
+            if (!TryMarkAsProcessing(user.Id, identifier, type))
             {
                 return Content("✓ Request already sent (duplicate prevented)", "text/plain");
             }
