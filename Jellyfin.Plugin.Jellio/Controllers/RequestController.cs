@@ -76,7 +76,7 @@ public class RequestController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> CreateRequest(
-        [ConfigFromBase64Json] ConfigModel? config,
+        [ConfigFromBase64Json] ConfigModel config,
         [AuthenticatedUser] User user,
         [FromQuery] string type,
         [FromQuery] int? tmdbId,
@@ -91,14 +91,6 @@ public class RequestController : ControllerBase
             var requestMsg = $"[Jellyseerr] Request received: type={type}, tmdbId={tmdbId}, imdbId={imdbId}, title={title}";
             Console.WriteLine(requestMsg);
             LogBuffer.AddLog(requestMsg, LogLevel.Info);
-
-            if (config is null)
-            {
-                var errorMsg = "[Jellyseerr] ERROR: Config is null";
-                Console.WriteLine(errorMsg);
-                LogBuffer.AddLog(errorMsg, LogLevel.Error);
-                return BadRequest("Invalid or missing configuration.");
-            }
 
             // Check for duplicate request (with lock to prevent race condition)
             var identifier = imdbId ?? tmdbId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? title ?? "unknown";

@@ -12,6 +12,7 @@ using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Jellio.Authentication;
 using Jellyfin.Plugin.Jellio.Helpers;
+using Jellyfin.Plugin.Jellio.Library;
 using Jellyfin.Plugin.Jellio.Models;
 using Jellyfin.Plugin.Jellio.Streams;
 using MediaBrowser.Controller.Dto;
@@ -39,19 +40,22 @@ public class AddonController : ControllerBase
     private readonly IUserViewManager _userViewManager;
     private readonly IDtoService _dtoService;
     private readonly ILibraryManager _libraryManager;
+    private readonly ItemResolver _itemResolver;
     private static readonly HttpClient _httpClient = new();
 
     public AddonController(
         IUserManager userManager,
         IUserViewManager userViewManager,
         IDtoService dtoService,
-        ILibraryManager libraryManager
+        ILibraryManager libraryManager,
+        ItemResolver itemResolver
     )
     {
         _userManager = userManager;
         _userViewManager = userViewManager;
         _dtoService = dtoService;
         _libraryManager = libraryManager;
+        _itemResolver = itemResolver;
     }
 
     private async Task<string?> GetTitleFromCinemeta(string imdbId, string type)
@@ -422,8 +426,8 @@ public class AddonController : ControllerBase
     {
         LogBuffer.AddLog($"[Stream] Stream request for {stremioType} with ID: {mediaId}", LogLevel.Info);
 
-        var item = _libraryManager.GetItemById<BaseItem>(mediaId, user.Id);
-        if (item == null)
+        var items = _itemResolver.Resolve(user, new LibraryItemId(mediaId));
+        if (items.Count == 0)
         {
             LogBuffer.AddLog($"[Stream] Item not found: {mediaId}", LogLevel.Warning);
             // If the item isn't in the library, we can't resolve provider IDs here.
@@ -431,10 +435,8 @@ public class AddonController : ControllerBase
             return Ok(new { streams = Array.Empty<object>() });
         }
 
-        LogBuffer.AddLog($"[Stream] Found item: {item.Name} (Type: {item.GetType().Name}, Id: {item.Id})", LogLevel.Info);
-        var result = GetStreamsResult(user, [item], config.AuthToken, config.PublicBaseUrl);
-        LogBuffer.AddLog($"[Stream] Returning stream result for {item.Name}", LogLevel.Info);
-        return result;
+        LogBuffer.AddLog($"[Stream] Found {items.Count} item(s) for {mediaId}", LogLevel.Info);
+        return GetStreamsResult(user, items, config.AuthToken, config.PublicBaseUrl);
     }
 
     [HttpGet("stream/movie/tt{imdbId}.json")]
@@ -444,12 +446,7 @@ public class AddonController : ControllerBase
         string imdbId
     )
     {
-        var query = new InternalItemsQuery(user)
-        {
-            HasAnyProviderId = new Dictionary<string, string> { ["Imdb"] = $"tt{imdbId}" },
-            IncludeItemTypes = [BaseItemKind.Movie],
-        };
-        var items = _libraryManager.GetItemList(query);
+        var items = _itemResolver.Resolve(user, new ImdbMovieId($"tt{imdbId}"));
 
         if (items.Count == 0)
         {
@@ -486,47 +483,7 @@ public class AddonController : ControllerBase
     {
         LogBuffer.AddLog($"[Stream] TV Episode request: IMDB={imdbId}, Season={seasonNum}, Episode={episodeNum}", LogLevel.Info);
 
-        var seriesQuery = new InternalItemsQuery(user)
-        {
-            IncludeItemTypes = [BaseItemKind.Series],
-            HasAnyProviderId = new Dictionary<string, string> { ["Imdb"] = $"tt{imdbId}" },
-        };
-        var seriesItems = _libraryManager.GetItemList(seriesQuery);
-        LogBuffer.AddLog($"[Stream] Found {seriesItems.Count} series with IMDB tt{imdbId}", LogLevel.Info);
-
-        if (seriesItems.Count == 0)
-        {
-            LogBuffer.AddLog($"[Stream] Series not found for IMDB tt{imdbId}", LogLevel.Warning);
-            // Series not found - show Jellyseerr option if enabled
-            if (config.JellyseerrEnabled && !string.IsNullOrWhiteSpace(config.JellyseerrUrl))
-            {
-                var title = await GetTitleFromCinemeta(imdbId, "tv");
-                if (!string.IsNullOrWhiteSpace(title))
-                {
-                    var baseUrl = GetBaseUrl(config.PublicBaseUrl);
-                    var requestUrl = $"{baseUrl}/jelliopp/{Request.RouteValues["config"]}/jellyseerr?type=tv&imdbId=tt{imdbId}&title={Uri.EscapeDataString(title)}&season={seasonNum}&episode={episodeNum}";
-                    var streams = new[]
-                    {
-                        new { url = requestUrl, name = "📥 Request via Jellyseerr", description = "Click to send request to Jellyseerr" }
-                    };
-                    return Ok(new { streams });
-                }
-            }
-
-            return Ok(new { streams = Array.Empty<object>() });
-        }
-
-        var seriesIds = seriesItems.Select(s => s.Id).ToArray();
-        LogBuffer.AddLog($"[Stream] Series IDs: {string.Join(", ", seriesIds)}", LogLevel.Info);
-
-        var episodeQuery = new InternalItemsQuery(user)
-        {
-            IncludeItemTypes = [BaseItemKind.Episode],
-            AncestorIds = seriesIds,
-            ParentIndexNumber = seasonNum,
-            IndexNumber = episodeNum,
-        };
-        var episodeItems = _libraryManager.GetItemList(episodeQuery);
+        var episodeItems = _itemResolver.Resolve(user, new ImdbEpisodeId($"tt{imdbId}", seasonNum, episodeNum));
         LogBuffer.AddLog($"[Stream] Found {episodeItems.Count} episode(s) for Season {seasonNum}, Episode {episodeNum}", LogLevel.Info);
 
         if (episodeItems.Count == 0)
