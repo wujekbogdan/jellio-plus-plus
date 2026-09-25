@@ -1,4 +1,5 @@
 import { encode } from 'js-base64';
+import { defaultCatalogSortOrder } from '@/components/configForm/catalogSortOrder';
 import type { ConfigFormType } from '@/components/configForm/formSchema';
 import { stripTrailingSlash } from '@/lib/utils';
 import { HttpError } from '@/services/apiFetch';
@@ -20,6 +21,14 @@ const jellyseerrFields = (values: ConfigFormType) => {
   };
 };
 
+const catalogSortOrders = (values: ConfigFormType) =>
+  Object.fromEntries(
+    values.libraries.map((library) => [
+      insertGuidDashes(library.key),
+      values.sortOrders?.[library.key] ?? defaultCatalogSortOrder,
+    ]),
+  );
+
 const publicBaseUrlField = (values: ConfigFormType) =>
   values.publicBaseUrl
     ? { PublicBaseUrl: stripTrailingSlash(values.publicBaseUrl) }
@@ -39,6 +48,7 @@ export const buildConfiguration = ({
     insertGuidDashes(library.key),
   ),
   ServerName: serverName,
+  CatalogSortOrders: catalogSortOrders(values),
   ...jellyseerrFields(values),
   ...publicBaseUrlField(values),
 });

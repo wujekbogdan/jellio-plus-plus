@@ -32,6 +32,7 @@ const ConfigForm: FC<Props> = ({ serverInfo }) => {
     defaultValues: {
       serverName: serverInfo.serverName,
       libraries: [],
+      sortOrders: {},
       jellyseerrEnabled: false,
       jellyseerrUrl: '',
       jellyseerrApiKey: '',
