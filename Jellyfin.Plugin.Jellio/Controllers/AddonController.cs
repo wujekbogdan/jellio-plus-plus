@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.Jellio.Authentication;
+using Jellyfin.Plugin.Jellio.Catalogs;
 using Jellyfin.Plugin.Jellio.Helpers;
 using Jellyfin.Plugin.Jellio.Library;
 using Jellyfin.Plugin.Jellio.Models;
@@ -353,6 +354,7 @@ public class AddonController : ControllerBase
             IncludeItemTypes = [BaseItemKind.Movie, BaseItemKind.Series],
             Limit = 100,
             StartIndex = startIndex,
+            OrderBy = CatalogOrdering.For(config.CatalogSortOrders.GetValueOrDefault(catalogId, CatalogSortOrder.Name), stremioType),
             SearchTerm = searchTerm,
             ParentId = catalogLibrary.Id,
             DtoOptions = dtoOptions,
