@@ -1,8 +1,4 @@
-using System;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Jellio.Streams;
 using MediaBrowser.Model.Dto;
 
@@ -20,7 +16,7 @@ public class AudioTrackSelectionSnapshotTests
     [Fact]
     public void ForSource_SixTracksWithoutLanguageTags_OffersEveryTrack()
     {
-        var choices = AudioTrackSelection.ForSource(LoadSnapshot("multi-audio-6-tracks"));
+        var choices = AudioTrackSelection.ForSource(MediaSourceFixture.Load("multi-audio-6-tracks"));
 
         Assert.Equal([2, 3, 4, 5, 6, 7], choices.Select(choice => choice.StreamIndex));
         Assert.Equal(
@@ -38,7 +34,7 @@ public class AudioTrackSelectionSnapshotTests
     [Fact]
     public void ForSource_TwoTracksInTheSameLanguage_LabelsThemApart()
     {
-        var choices = AudioTrackSelection.ForSource(LoadSnapshot("multi-audio-2-tracks"));
+        var choices = AudioTrackSelection.ForSource(MediaSourceFixture.Load("multi-audio-2-tracks"));
 
         Assert.Equal(
             [
@@ -46,16 +42,5 @@ public class AudioTrackSelectionSnapshotTests
                 "English - Dolby Digital+ - 5.1",
             ],
             choices.Select(choice => choice.Label));
-    }
-
-    private static MediaSourceInfo LoadSnapshot(string slug)
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "MediaSourceInfo", $"{slug}.json");
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new JsonStringEnumConverter() },
-        };
-        return JsonSerializer.Deserialize<MediaSourceInfo>(File.ReadAllText(path), options)!;
     }
 }
