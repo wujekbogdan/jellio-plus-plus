@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
 using System.Reflection;
+using Jellyfin.Plugin.Jellio.Configuration;
 using Jellyfin.Plugin.Jellio.Helpers;
 using Jellyfin.Plugin.Jellio.Models;
 using MediaBrowser.Controller;
@@ -134,27 +135,7 @@ public class WebController : ControllerBase
             return Unauthorized();
         }
 
-        var config = Plugin.Instance?.Configuration;
-        if (config == null)
-        {
-            return Ok(new
-            {
-                jellyseerrEnabled = false,
-                jellyseerrUrl = string.Empty,
-                jellyseerrApiKey = string.Empty,
-                publicBaseUrl = string.Empty,
-                selectedLibraries = Array.Empty<string>()
-            });
-        }
-
-        return Ok(new
-        {
-            jellyseerrEnabled = config.JellyseerrEnabled,
-            jellyseerrUrl = config.JellyseerrUrl,
-            jellyseerrApiKey = config.JellyseerrApiKey,
-            publicBaseUrl = config.PublicBaseUrl,
-            selectedLibraries = config.SelectedLibraries?.Select(g => g.ToString("N")).ToArray() ?? Array.Empty<string>()
-        });
+        return Ok(ConfigResponse.From(Plugin.Instance?.Configuration ?? new PluginConfiguration()));
     }
 
     [HttpPost("save-config")]
@@ -183,26 +164,7 @@ public class WebController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { error = "Plugin instance not available." });
         }
 
-        var config = Plugin.Instance.Configuration;
-        config.JellyseerrEnabled = request.JellyseerrEnabled;
-        config.JellyseerrUrl = request.JellyseerrUrl ?? string.Empty;
-        config.JellyseerrApiKey = request.JellyseerrApiKey ?? string.Empty;
-        config.PublicBaseUrl = request.PublicBaseUrl ?? string.Empty;
-
-        // Save selected libraries
-        if (request.SelectedLibraries != null)
-        {
-            config.SelectedLibraries = request.SelectedLibraries
-                .Where(id => Guid.TryParse(id, out _))
-                .Select(id => Guid.Parse(id))
-                .ToList();
-        }
-        else
-        {
-            config.SelectedLibraries = new List<Guid>();
-        }
-
-        Plugin.Instance.SaveConfiguration();
+        Plugin.Instance.UpdateConfiguration(request.ToConfiguration());
 
         return Ok(new { success = true });
     }

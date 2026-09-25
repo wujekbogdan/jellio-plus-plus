@@ -34,6 +34,46 @@ describe('buildConfiguration', () => {
       AuthToken: 'token-xyz',
       LibrariesGuids: ['aabbccdd-1122-3344-eeff-00112233aabb'],
       ServerName: 'My Server',
+      CatalogSortOrders: {
+        'aabbccdd-1122-3344-eeff-00112233aabb': 'RecentlyAdded',
+      },
+    });
+  });
+
+  it('should include the sort order of each enabled library, Recently Added when none was chosen', () => {
+    const configuration = buildConfiguration({
+      token: 'tk',
+      values: {
+        serverName: '',
+        libraries: [
+          {
+            key: 'aabbccdd11223344eeff00112233aabb',
+            name: 'Movies',
+            type: 'movies',
+          },
+          {
+            key: '11223344556677889900aabbccddeeff',
+            name: 'Shows',
+            type: 'tvshows',
+          },
+        ],
+        sortOrders: {
+          aabbccdd11223344eeff00112233aabb: 'ReleaseDate',
+          ffeeddccbbaa00998877665544332211: 'Name',
+        },
+        jellyseerrEnabled: false,
+        jellyseerrUrl: '',
+        jellyseerrApiKey: '',
+        publicBaseUrl: '',
+      },
+      serverName: 'srv',
+    });
+
+    expect(configuration).toMatchObject({
+      CatalogSortOrders: {
+        'aabbccdd-1122-3344-eeff-00112233aabb': 'ReleaseDate',
+        '11223344-5566-7788-9900-aabbccddeeff': 'RecentlyAdded',
+      },
     });
   });
 
@@ -101,6 +141,7 @@ describe('buildManifestUrl', () => {
       AuthToken: 'tk',
       LibrariesGuids: [],
       ServerName: 's',
+      CatalogSortOrders: {},
     };
     const url = buildManifestUrl({
       base: 'https://jellyfin.example.com/jelliopp',

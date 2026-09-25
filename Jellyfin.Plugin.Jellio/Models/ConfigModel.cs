@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Jellyfin.Plugin.Jellio.Catalogs;
 
 namespace Jellyfin.Plugin.Jellio.Models;
 
@@ -9,6 +10,8 @@ public class ConfigModel
     public required string AuthToken { get; init; }
 
     public required IReadOnlyList<Guid> LibrariesGuids { get; init; }
+
+    public IReadOnlyDictionary<Guid, CatalogSortOrder> CatalogSortOrders { get; init; } = new Dictionary<Guid, CatalogSortOrder>();
 
     // Jellyseerr integration
     public bool JellyseerrEnabled { get; init; } = false;

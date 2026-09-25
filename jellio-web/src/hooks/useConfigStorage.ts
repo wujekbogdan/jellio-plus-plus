@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
+import { catalogSortOrders } from '@/components/configForm/catalogSortOrder';
 import type { ConfigFormType } from '@/components/configForm/formSchema';
+import { sortOrdersFromServer } from '@/components/configForm/serverConfig';
 import { getConfigFromServer } from '@/services/backendService';
 import type { Library } from '@/types';
 
@@ -17,6 +19,7 @@ const storedConfigSchema = z.object({
       }),
     )
     .optional(),
+  sortOrders: z.record(z.string(), z.enum(catalogSortOrders)).optional(),
   jellyseerrEnabled: z.boolean().optional(),
   jellyseerrUrl: z.string().optional(),
   jellyseerrApiKey: z.string().optional(),
@@ -24,6 +27,18 @@ const storedConfigSchema = z.object({
 });
 
 type StoredConfig = z.infer<typeof storedConfigSchema>;
+
+const withoutDashes = (id: string) => id.replace(/-/g, '');
+
+const librariesSelectedOnServer = (
+  selectedIds: string[],
+  availableLibraries: Library[],
+) =>
+  selectedIds.flatMap((id) =>
+    availableLibraries.filter(
+      (library) => withoutDashes(library.key) === withoutDashes(id),
+    ),
+  );
 
 const stripTrailingSlash = (url: string) => url.replace(/\/+$/, '');
 
@@ -44,6 +59,9 @@ export const useConfigStorage = (
             const config = result.data;
             if (config.libraries) {
               form.setValue('libraries', config.libraries);
+            }
+            if (config.sortOrders) {
+              form.setValue('sortOrders', config.sortOrders);
             }
             if (config.jellyseerrEnabled !== undefined) {
               form.setValue('jellyseerrEnabled', config.jellyseerrEnabled);
@@ -77,19 +95,17 @@ export const useConfigStorage = (
           if (serverConfig.publicBaseUrl) {
             form.setValue('publicBaseUrl', serverConfig.publicBaseUrl);
           }
+          if (serverConfig.catalogSortOrders?.length) {
+            form.setValue(
+              'sortOrders',
+              sortOrdersFromServer(serverConfig.catalogSortOrders),
+            );
+          }
           if (serverConfig.selectedLibraries && availableLibraries) {
-            // Server stores library IDs as 32-char guids without dashes
-            const selectedLibraries = serverConfig.selectedLibraries
-              .map((id) => {
-                const formattedId =
-                  id.length === 32
-                    ? `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20, 32)}`
-                    : id;
-                return availableLibraries.find(
-                  (lib) => lib.key === formattedId,
-                );
-              })
-              .filter((lib): lib is Library => lib !== undefined);
+            const selectedLibraries = librariesSelectedOnServer(
+              serverConfig.selectedLibraries,
+              availableLibraries,
+            );
 
             if (selectedLibraries.length > 0) {
               form.setValue('libraries', selectedLibraries);
@@ -110,6 +126,7 @@ export const useConfigStorage = (
       const values = form.getValues();
       const config: StoredConfig = {
         libraries: values.libraries,
+        sortOrders: values.sortOrders,
         jellyseerrEnabled: values.jellyseerrEnabled,
         jellyseerrUrl: stripTrailingSlash(values.jellyseerrUrl ?? ''),
         jellyseerrApiKey: values.jellyseerrApiKey,

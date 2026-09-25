@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { catalogSortOrders } from '@/components/configForm/catalogSortOrder';
 
 export const formSchema = z.object({
   serverName: z.string(),
@@ -9,6 +10,7 @@ export const formSchema = z.object({
       type: z.string(),
     }),
   ),
+  sortOrders: z.record(z.string(), z.enum(catalogSortOrders)).default({}),
   jellyseerrEnabled: z.boolean().default(false),
   jellyseerrUrl: z.string().url().or(z.literal('')).default(''),
   jellyseerrApiKey: z.string().default(''),

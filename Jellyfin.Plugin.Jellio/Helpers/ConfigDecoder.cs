@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Jellio.Models;
 using Microsoft.AspNetCore.WebUtilities;
 
@@ -12,6 +13,11 @@ namespace Jellyfin.Plugin.Jellio.Helpers;
 /// </summary>
 internal static class ConfigDecoder
 {
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        Converters = { new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false) },
+    };
+
     public static ConfigModel? Decode(string? encoded)
     {
         if (string.IsNullOrWhiteSpace(encoded))
@@ -21,7 +27,7 @@ internal static class ConfigDecoder
 
         try
         {
-            return JsonSerializer.Deserialize<ConfigModel>(Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(encoded)));
+            return JsonSerializer.Deserialize<ConfigModel>(Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(encoded)), Options);
         }
         catch (FormatException)
         {
