@@ -33,8 +33,8 @@ public class SubtitleResponsesTests
     [Fact]
     public void StyledTrack_HasAnAssUrlAndTheFontUrlsOfItsVersion()
     {
-        var styled = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 5, Language: "eng", SubtitleFormat.Ass, Label: null, FontAttachmentIndexes: [9, 11]);
-        var plain = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 6, Language: "pol", SubtitleFormat.Srt, Label: null, FontAttachmentIndexes: []);
+        var styled = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 5, Language: "eng", SubtitleFormat.Ass, Label: "Styled - ASS", FontAttachmentIndexes: [9, 11]);
+        var plain = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 6, Language: "pol", SubtitleFormat.Srt, Label: "SUBRIP", FontAttachmentIndexes: []);
 
         var subtitles = SubtitleResponses.From(new SubtitleOutcome.Offered([styled, plain]), baseUrl: BaseUrl, authToken: AuthToken).Subtitles;
 
@@ -49,13 +49,13 @@ public class SubtitleResponsesTests
     }
 
     [Fact]
-    public void TrackWithoutLabelOrFonts_IsSerializedWithoutThoseKeys()
+    public void TrackWithoutFonts_IsSerializedWithoutAFontsKey()
     {
-        var track = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 4, Language: "eng", SubtitleFormat.Srt, Label: null, FontAttachmentIndexes: []);
+        var track = new SubtitleTrack(ItemId, "a1b2c3", StreamIndex: 4, Language: "eng", SubtitleFormat.Srt, Label: "SUBRIP", FontAttachmentIndexes: []);
 
         var json = JsonSerializer.Serialize(SubtitleResponses.From(new SubtitleOutcome.Offered([track]), baseUrl: BaseUrl, authToken: AuthToken));
 
-        Assert.Equal(["id", "url", "lang"], JsonNode.Parse(json)!["subtitles"]![0]!.AsObject().Select(property => property.Key));
+        Assert.Equal(["id", "url", "lang", "label"], JsonNode.Parse(json)!["subtitles"]![0]!.AsObject().Select(property => property.Key));
     }
 
     [Theory]

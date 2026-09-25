@@ -12,5 +12,5 @@ internal sealed record SubtitleTrack(
     int StreamIndex,
     string Language,
     SubtitleFormat Format,
-    string? Label,
+    string Label,
     IReadOnlyList<int> FontAttachmentIndexes);

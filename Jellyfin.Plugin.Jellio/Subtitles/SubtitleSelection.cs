@@ -48,7 +48,7 @@ internal static class SubtitleSelection
             .ToList());
     }
 
-    private static SubtitleTrack ToTrack(TitleVersion version, DeliverableStream candidate, string? label, IReadOnlyList<int> fonts) =>
+    private static SubtitleTrack ToTrack(TitleVersion version, DeliverableStream candidate, string label, IReadOnlyList<int> fonts) =>
         new(
             version.ItemId,
             version.Source.Id,

@@ -9,7 +9,7 @@ public class SubtitleLogLineTests
     public void EachOutcome_IsDescribedWithTheRequestedIdAndThePlayingFile()
     {
         var playingFile = new PlayingFile("The Matrix - 1080p.mkv", 146761);
-        var track = new SubtitleTrack(Guid.NewGuid(), "a1b2c3", StreamIndex: 4, Language: "eng", SubtitleFormat.Srt, Label: null, FontAttachmentIndexes: []);
+        var track = new SubtitleTrack(Guid.NewGuid(), "a1b2c3", StreamIndex: 4, Language: "eng", SubtitleFormat.Srt, Label: "SUBRIP", FontAttachmentIndexes: []);
         string Line(PlayingFile? file, SubtitleOutcome outcome) => SubtitleLogLine.For("tt0133093", file, outcome);
 
         Assert.Equal("[Subtitles] tt0133093 · The Matrix - 1080p.mkv (146761 bytes) · title not in library", Line(playingFile, new SubtitleOutcome.TitleNotInLibrary()));
@@ -19,3 +19,4 @@ public class SubtitleLogLineTests
         Assert.Equal("[Subtitles] tt0133093 · no file details · no matching version, 1 checked", Line(null, new SubtitleOutcome.NoMatchingVersion(VersionCount: 1)));
     }
 }
+                                     

@@ -15,7 +15,7 @@ public class SubtitleSelectionTests
 
         var track = Assert.Single(Assert.IsType<SubtitleOutcome.Offered>(outcome).Tracks);
         Assert.Equivalent(
-            new SubtitleTrack(version.ItemId, version.Source.Id, StreamIndex: 1, Language: "eng", SubtitleFormat.Srt, Label: null, FontAttachmentIndexes: []),
+            new SubtitleTrack(version.ItemId, version.Source.Id, StreamIndex: 1, Language: "eng", SubtitleFormat.Srt, Label: "SUBRIP", FontAttachmentIndexes: []),
             track);
     }
 
@@ -99,7 +99,7 @@ public class SubtitleSelectionTests
 
         var offered = Assert.IsType<SubtitleOutcome.Offered>(OfferedFor(source));
 
-        Assert.Equal(["#1", "#2"], offered.Tracks.Select(offeredTrack => offeredTrack.Label));
+        Assert.Equal(["SUBRIP #1", "SUBRIP #2"], offered.Tracks.Select(offeredTrack => offeredTrack.Label));
     }
 
     [Theory]
@@ -116,22 +116,22 @@ public class SubtitleSelectionTests
     }
 
     [Fact]
-    public void TracksThatShareALanguage_AreLabelledByTheirDetails()
+    public void Tracks_AreLabelledLikeJellyfinWithoutTheLanguage()
     {
         var offered = Assert.IsType<SubtitleOutcome.Offered>(OfferedFor("subtitles-sample-1080p"));
 
         Assert.Equal(
-            new Dictionary<int, string?>
+            new Dictionary<int, string>
             {
-                [0] = "#2", // the external file
-                [2] = "#1", // the default track
-                [3] = "Forced",
-                [4] = "SDH",
-                [5] = "Styled",
-                [6] = "#1",
-                [7] = null,
-                [8] = "#2",
-                [9] = "Commentary",
+                [0] = "SUBRIP - External",
+                [2] = "Default - SUBRIP",
+                [3] = "Forced - SUBRIP",
+                [4] = "SDH - Hearing Impaired - SUBRIP",
+                [5] = "Styled - ASS",
+                [6] = "SUBRIP #1",
+                [7] = "WEBVTT",
+                [8] = "SUBRIP #2",
+                [9] = "Commentary - SUBRIP",
             },
             offered.Tracks.ToDictionary(track => track.StreamIndex, track => track.Label));
     }
