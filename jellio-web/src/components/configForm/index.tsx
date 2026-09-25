@@ -11,11 +11,11 @@ import {
 } from '@/components/configForm/fields';
 import { formSchema } from '@/components/configForm/formSchema.tsx';
 import { InstallUrlsContainer } from '@/components/configForm/installUrls/InstallUrlsContainer';
+import { toServerConfig } from '@/components/configForm/serverConfig';
 import { LogsViewer } from '@/components/logsViewer';
 import { Button } from '@/components/ui/button.tsx';
 import { Form } from '@/components/ui/form';
 import { useConfigStorage } from '@/hooks/useConfigStorage';
-import { stripTrailingSlash } from '@/lib/utils';
 import { saveConfigToServer } from '@/services/backendService';
 import type { ServerInfo } from '@/types';
 
@@ -52,19 +52,9 @@ const ConfigForm: FC<Props> = ({ serverInfo }) => {
     setSaving(true);
     setSaved(false);
     try {
-      const values = form.getValues();
       saveConfig();
       await saveConfigToServer({
-        config: {
-          jellyseerrEnabled: values.jellyseerrEnabled ?? false,
-          jellyseerrUrl: stripTrailingSlash(values.jellyseerrUrl ?? ''),
-          jellyseerrApiKey: values.jellyseerrApiKey ?? '',
-          publicBaseUrl: stripTrailingSlash(values.publicBaseUrl ?? ''),
-          selectedLibraries:
-            values.libraries?.map((lib: { key: string }) =>
-              lib.key.replace(/-/g, ''),
-            ) ?? [],
-        },
+        config: toServerConfig(form.getValues()),
         token: serverInfo.accessToken,
       });
 

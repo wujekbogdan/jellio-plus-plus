@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { catalogSortOrders } from '@/components/configForm/catalogSortOrder';
 import { getBaseUrl, getOrCreateDeviceId } from '@/lib/utils';
 import { makeApiFetch } from '@/services/apiFetch';
 import { buildAuthHeaders } from '@/services/authHeaders';
@@ -59,6 +60,14 @@ export const saveConfigDataSchema = z.object({
   jellyseerrApiKey: z.string().optional(),
   publicBaseUrl: z.string().optional(),
   selectedLibraries: z.array(z.string()).optional(),
+  catalogSortOrders: z
+    .array(
+      z.object({
+        libraryId: z.string(),
+        sortOrder: z.enum(catalogSortOrders),
+      }),
+    )
+    .optional(),
 });
 
 export type SaveConfigData = z.infer<typeof saveConfigDataSchema>;

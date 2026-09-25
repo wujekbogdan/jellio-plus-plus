@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
+import { catalogSortOrders } from '@/components/configForm/catalogSortOrder';
 import type { ConfigFormType } from '@/components/configForm/formSchema';
+import { sortOrdersFromServer } from '@/components/configForm/serverConfig';
 import { getConfigFromServer } from '@/services/backendService';
 import type { Library } from '@/types';
 
@@ -17,6 +19,7 @@ const storedConfigSchema = z.object({
       }),
     )
     .optional(),
+  sortOrders: z.record(z.string(), z.enum(catalogSortOrders)).optional(),
   jellyseerrEnabled: z.boolean().optional(),
   jellyseerrUrl: z.string().optional(),
   jellyseerrApiKey: z.string().optional(),
@@ -44,6 +47,9 @@ export const useConfigStorage = (
             const config = result.data;
             if (config.libraries) {
               form.setValue('libraries', config.libraries);
+            }
+            if (config.sortOrders) {
+              form.setValue('sortOrders', config.sortOrders);
             }
             if (config.jellyseerrEnabled !== undefined) {
               form.setValue('jellyseerrEnabled', config.jellyseerrEnabled);
@@ -76,6 +82,12 @@ export const useConfigStorage = (
           }
           if (serverConfig.publicBaseUrl) {
             form.setValue('publicBaseUrl', serverConfig.publicBaseUrl);
+          }
+          if (serverConfig.catalogSortOrders?.length) {
+            form.setValue(
+              'sortOrders',
+              sortOrdersFromServer(serverConfig.catalogSortOrders),
+            );
           }
           if (serverConfig.selectedLibraries && availableLibraries) {
             // Server stores library IDs as 32-char guids without dashes
@@ -110,6 +122,7 @@ export const useConfigStorage = (
       const values = form.getValues();
       const config: StoredConfig = {
         libraries: values.libraries,
+        sortOrders: values.sortOrders,
         jellyseerrEnabled: values.jellyseerrEnabled,
         jellyseerrUrl: stripTrailingSlash(values.jellyseerrUrl ?? ''),
         jellyseerrApiKey: values.jellyseerrApiKey,
