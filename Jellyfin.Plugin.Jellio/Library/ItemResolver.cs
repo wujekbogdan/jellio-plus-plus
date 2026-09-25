@@ -8,9 +8,6 @@ using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.Jellio.Library;
 
-/// <summary>
-/// Finds the library items that a user can access for a title id.
-/// </summary>
 public sealed class ItemResolver(ILibraryManager libraryManager)
 {
     public IReadOnlyList<BaseItem> Resolve(User user, LibraryItemId id)
@@ -37,7 +34,7 @@ public sealed class ItemResolver(ILibraryManager libraryManager)
             .Select(series => series.Id)
             .ToArray();
 
-        // An empty AncestorIds filter matches episodes of every series.
+        // An empty AncestorIds filter matches the episodes of every series. Without this return, a series that is not in the library would find the same episode of every series.
         if (seriesIds.Length == 0)
         {
             return [];
