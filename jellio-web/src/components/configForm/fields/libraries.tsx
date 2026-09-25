@@ -1,9 +1,8 @@
 import type { FC } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
+import { LibrarySection } from '@/components/configForm/fields/librarySection.tsx';
 import type { ConfigFormType } from '@/components/configForm/formSchema.tsx';
-import { Checkbox } from '@/components/ui/checkbox.tsx';
 import {
-  FormControl,
   FormDescription,
   FormField,
   FormItem,
@@ -32,42 +31,12 @@ export const LibrariesField: FC<Props> = ({ form, serverName, libraries }) => {
             </FormDescription>
           </div>
           {libraries.length > 0 ? (
-            libraries.map((item: Library) => (
-              <FormField
-                key={item.key}
-                control={form.control}
-                name="libraries"
-                render={({ field }) => {
-                  return (
-                    <FormItem
-                      key={item.key}
-                      className="flex flex-row items-start space-x-3 space-y-0"
-                    >
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value.some((v) => v.key === item.key)}
-                          onCheckedChange={(checked) => {
-                            return checked
-                              ? field.onChange([
-                                  ...field.value,
-                                  {
-                                    key: item.key,
-                                    name: item.name,
-                                    type: item.type,
-                                  },
-                                ])
-                              : field.onChange(
-                                  field.value.filter(
-                                    (value) => value.key !== item.key,
-                                  ),
-                                );
-                          }}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal">{`${item.name} | ${serverName}`}</FormLabel>
-                    </FormItem>
-                  );
-                }}
+            libraries.map((library) => (
+              <LibrarySection
+                key={library.key}
+                form={form}
+                serverName={serverName}
+                library={library}
               />
             ))
           ) : (
