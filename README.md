@@ -69,7 +69,7 @@ docker compose run --rm dotnet-builder
 docker compose up -d
 ```
 
-Jellyfin: <http://localhost:8096>. Stremio: <http://localhost:11470>. Test media goes in `./media/movies/` and `./media/shows/`. Jellyfin sees them as `/media/movies` and `/media/shows`.
+Jellyfin: <http://localhost:8096>. Stremio: <http://localhost:11470>. Test media goes in `./media/movies/` and `./media/shows/`.
 
 ### Plugin UI
 
