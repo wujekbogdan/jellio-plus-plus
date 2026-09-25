@@ -15,6 +15,12 @@ const movies = {
   type: 'movies',
 };
 
+const shows = {
+  key: '11223344556677889900aabbccddeeff',
+  name: 'Shows',
+  type: 'tvshows',
+};
+
 const renderStoredForm = (
   storedConfig: unknown,
   { accessToken }: { accessToken?: string } = {},
@@ -24,7 +30,7 @@ const renderStoredForm = (
     const form = useForm<ConfigFormType>({
       defaultValues: { serverName: 'srv', libraries: [], sortOrders: {} },
     });
-    useConfigStorage(form, accessToken, [movies]);
+    useConfigStorage(form, accessToken, [movies, shows]);
     return form;
   });
 };
@@ -74,6 +80,18 @@ describe('useConfigStorage', () => {
       expect(result.current.getValues('sortOrders')).toEqual({
         [movies.key]: 'Name',
       });
+    });
+  });
+
+  it('should restore the libraries selected on the server in a fresh browser', async () => {
+    vi.mocked(getConfigFromServer).mockResolvedValue({
+      selectedLibraries: [shows.key],
+    });
+
+    const { result } = renderStoredForm({}, { accessToken: 'tk' });
+
+    await waitFor(() => {
+      expect(result.current.getValues('libraries')).toEqual([shows]);
     });
   });
 });

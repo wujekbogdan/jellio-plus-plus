@@ -28,6 +28,18 @@ const storedConfigSchema = z.object({
 
 type StoredConfig = z.infer<typeof storedConfigSchema>;
 
+const withoutDashes = (id: string) => id.replace(/-/g, '');
+
+const librariesSelectedOnServer = (
+  selectedIds: string[],
+  availableLibraries: Library[],
+) =>
+  selectedIds.flatMap((id) =>
+    availableLibraries.filter(
+      (library) => withoutDashes(library.key) === withoutDashes(id),
+    ),
+  );
+
 const stripTrailingSlash = (url: string) => url.replace(/\/+$/, '');
 
 export const useConfigStorage = (
@@ -90,18 +102,10 @@ export const useConfigStorage = (
             );
           }
           if (serverConfig.selectedLibraries && availableLibraries) {
-            // Server stores library IDs as 32-char guids without dashes
-            const selectedLibraries = serverConfig.selectedLibraries
-              .map((id) => {
-                const formattedId =
-                  id.length === 32
-                    ? `${id.slice(0, 8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20, 32)}`
-                    : id;
-                return availableLibraries.find(
-                  (lib) => lib.key === formattedId,
-                );
-              })
-              .filter((lib): lib is Library => lib !== undefined);
+            const selectedLibraries = librariesSelectedOnServer(
+              serverConfig.selectedLibraries,
+              availableLibraries,
+            );
 
             if (selectedLibraries.length > 0) {
               form.setValue('libraries', selectedLibraries);
