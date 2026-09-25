@@ -13,7 +13,7 @@ internal abstract record SubtitleOutcome
     /// <summary>
     /// No version of the title is the playing file, or the request has no playing file.
     /// </summary>
-    internal sealed record NoMatchingVersion : SubtitleOutcome;
+    internal sealed record NoMatchingVersion(int VersionCount) : SubtitleOutcome;
 
     /// <summary>
     /// No track of the playing version can be offered. <c>Skipped</c> is the number of subtitle tracks that the version has, and is 0 when it has none.

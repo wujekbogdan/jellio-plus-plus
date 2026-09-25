@@ -82,15 +82,7 @@ public class AddonController : ControllerBase
         return null;
     }
 
-    private string GetBaseUrl(string? overrideBaseUrl = null)
-    {
-        if (!string.IsNullOrWhiteSpace(overrideBaseUrl))
-        {
-            return overrideBaseUrl!.TrimEnd('/');
-        }
-
-        return $"{Request.Scheme}://{Request.Host}{Request.PathBase}";
-    }
+    private string GetBaseUrl(string? overrideBaseUrl = null) => JellyfinBaseUrl.Of(Request, overrideBaseUrl);
 
     private static MetaDto MapToMeta(
         BaseItemDto dto,
@@ -294,6 +286,12 @@ public class AddonController : ControllerBase
                     name = "meta",
                     types = new[] { "movie", "series" },
                     idPrefixes = new[] { "jelliopp" },
+                },
+                new
+                {
+                    name = "subtitles",
+                    types = new[] { "movie", "series" },
+                    idPrefixes = new[] { "tt", "jelliopp" },
                 },
             },
             types = new[] { "movie", "series" },

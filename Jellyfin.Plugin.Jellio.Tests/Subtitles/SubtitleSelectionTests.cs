@@ -39,9 +39,9 @@ public class SubtitleSelectionTests
         var offered = Assert.IsType<SubtitleOutcome.Offered>(Playing(new PlayingFile("subtitles-sample-720p.mkv", hd.Source.Size!.Value)));
 
         Assert.All(offered.Tracks, track => Assert.Equal(hd.Source.Id, track.MediaSourceId));
-        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(), Playing(new PlayingFile("subtitles-sample-720p.mkv", fullHd.Source.Size!.Value)));
-        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(), Playing(new PlayingFile("another-release.mkv", hd.Source.Size!.Value)));
-        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(), Playing(null));
+        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(VersionCount: 2), Playing(new PlayingFile("subtitles-sample-720p.mkv", fullHd.Source.Size!.Value)));
+        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(VersionCount: 2), Playing(new PlayingFile("another-release.mkv", hd.Source.Size!.Value)));
+        Assert.Equal(new SubtitleOutcome.NoMatchingVersion(VersionCount: 2), Playing(null));
     }
 
     [Fact]

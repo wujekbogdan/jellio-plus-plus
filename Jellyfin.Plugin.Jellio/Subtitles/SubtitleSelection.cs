@@ -25,7 +25,7 @@ internal static class SubtitleSelection
             : null;
         if (playingVersion is null)
         {
-            return new SubtitleOutcome.NoMatchingVersion();
+            return new SubtitleOutcome.NoMatchingVersion(request.Versions.Count);
         }
 
         var deliverable = Sources
