@@ -64,10 +64,11 @@ public class AddonController : ControllerBase
         try
         {
             var stremioType = type == "movie" ? "movie" : "series";
-            var response = await _httpClient.GetAsync($"https://v3-cinemeta.strem.io/meta/{stremioType}/tt{imdbId}.json");
+            var response = await _httpClient.GetAsync($"https://v3-cinemeta.strem.io/meta/{stremioType}/tt{imdbId}.json").ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync());
+                var content = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var doc = await JsonDocument.ParseAsync(content).ConfigureAwait(false);
                 if (doc.RootElement.TryGetProperty("meta", out var meta) &&
                     meta.TryGetProperty("name", out var name))
                 {
@@ -154,12 +155,7 @@ public class AddonController : ControllerBase
 
         var streams = dtos.SelectMany(dto =>
         {
-            int mediaSourceCount = 0;
-            if (dto.MediaSources != null)
-            {
-                mediaSourceCount = dto.MediaSources.Count();
-            }
-
+            var mediaSourceCount = dto.MediaSources?.Length ?? 0;
             LogBuffer.AddLog($"[Stream] Processing DTO: {dto.Name} (Id: {dto.Id}, MediaSources: {mediaSourceCount})", LogLevel.Info);
             if (dto.MediaSources == null)
             {
@@ -423,7 +419,7 @@ public class AddonController : ControllerBase
             // No local stream found; provide a Jellyseerr request stream if configured
             if (config.JellyseerrEnabled && !string.IsNullOrWhiteSpace(config.JellyseerrUrl))
             {
-                var title = await GetTitleFromCinemeta(imdbId, "movie");
+                var title = await GetTitleFromCinemeta(imdbId, "movie").ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(title))
                 {
                     var baseUrl = GetBaseUrl(config.PublicBaseUrl);
@@ -462,7 +458,7 @@ public class AddonController : ControllerBase
             // Episode not found - show Jellyseerr option if enabled
             if (config.JellyseerrEnabled && !string.IsNullOrWhiteSpace(config.JellyseerrUrl))
             {
-                var title = await GetTitleFromCinemeta(imdbId, "tv");
+                var title = await GetTitleFromCinemeta(imdbId, "tv").ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(title))
                 {
                     var baseUrl = GetBaseUrl(config.PublicBaseUrl);
