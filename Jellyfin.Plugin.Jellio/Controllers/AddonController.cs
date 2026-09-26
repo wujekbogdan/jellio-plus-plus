@@ -64,10 +64,11 @@ public class AddonController : ControllerBase
         try
         {
             var stremioType = type == "movie" ? "movie" : "series";
-            var response = await _httpClient.GetAsync($"https://v3-cinemeta.strem.io/meta/{stremioType}/tt{imdbId}.json");
+            var response = await _httpClient.GetAsync($"https://v3-cinemeta.strem.io/meta/{stremioType}/tt{imdbId}.json").ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync());
+                var content = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var doc = await JsonDocument.ParseAsync(content).ConfigureAwait(false);
                 if (doc.RootElement.TryGetProperty("meta", out var meta) &&
                     meta.TryGetProperty("name", out var name))
                 {
@@ -154,12 +155,7 @@ public class AddonController : ControllerBase
 
         var streams = dtos.SelectMany(dto =>
         {
-            int mediaSourceCount = 0;
-            if (dto.MediaSources != null)
-            {
-                mediaSourceCount = dto.MediaSources.Count();
-            }
-
+            var mediaSourceCount = dto.MediaSources?.Length ?? 0;
             LogBuffer.AddLog($"[Stream] Processing DTO: {dto.Name} (Id: {dto.Id}, MediaSources: {mediaSourceCount})", LogLevel.Info);
             if (dto.MediaSources == null)
             {
@@ -171,19 +167,6 @@ public class AddonController : ControllerBase
 
             return mediaSources.SelectMany(source =>
             {
-                /*
-                 * Jellyfin's HLS endpoint requires the caller to declare which codecs the player supports.
-                 * It compares these against the media file's codecs to decide whether to pass through without re-encoding or transcode.
-                 *
-                 * Stremio's addon protocol has no mechanism for the client to advertise its codec capabilities to addons, so we hardcode them here. The lists below reflect what Stremio's players can decode. This is the same pattern every Jellyfin client follows - e.g. jellyfin-web builds its codec list.
-                 * See: https://github.com/jellyfin/jellyfin-web/blob/285196329/src/scripts/browserDeviceProfile.js#L914-L925
-                 *
-                 * Without these params Jellyfin would fall back to "m3u8" as the audio codec name, producing invalid FFmpeg commands.
-                 * See: https://github.com/jellyfin/jellyfin/issues/12926
-                 */
-                string[] videoCodecs = ["h264", "hevc", "av1"];
-                string[] audioCodecs = ["aac", "mp3", "ac3", "eac3", "flac", "opus"];
-
                 string DescribeEntry(AudioTrackChoice? audioTrack)
                 {
                     if (audioTrack is null)
@@ -194,29 +177,15 @@ public class AddonController : ControllerBase
                     return isMultiMediaSource ? $"{audioTrack.Label} · {source.Name}" : audioTrack.Label;
                 }
 
-                StreamDto BuildEntry(AudioTrackChoice? audioTrack)
+                StreamDto BuildEntry(EntryStreams entry)
                 {
-                    // QueryString.Create writes a null value as "audioStreamIndex=", so the key is absent when no track is selected.
-                    KeyValuePair<string, string?>[] selectedTrack = audioTrack is null
-                        ? []
-                        : [new("audioStreamIndex", audioTrack.StreamIndex.ToString(CultureInfo.InvariantCulture))];
-
-                    KeyValuePair<string, string?>[] parameters =
-                    [
-                        new("mediaSourceId", source.Id),
-                        new("ApiKey", authToken),
-                        new("videoCodec", string.Join(',', videoCodecs)),
-                        new("audioCodec", string.Join(',', audioCodecs)),
-                        .. selectedTrack,
-                    ];
-
-                    var streamUrl = $"{baseUrl}/Videos/{dto.Id}/master.m3u8{QueryString.Create(parameters)}";
-                    LogBuffer.AddLog($"[Stream] Generated stream for {dto.Name} ({dto.Id}): {source.Name} - URL: {streamUrl}", LogLevel.Info);
+                    var streamUrl = $"{baseUrl}/Videos/{dto.Id}/master.m3u8{QueryString.Create(HlsStreamQuery.For(entry, source.Id, authToken))}";
+                    LogBuffer.AddLog($"[Stream] Generated stream for {dto.Name} ({dto.Id}): {source.Name} - container: {SegmentContainerSelection.For(entry)} - URL: {streamUrl}", LogLevel.Info);
                     return new StreamDto
                     {
                         Url = streamUrl,
                         Name = "Jellio++",
-                        Description = DescribeEntry(audioTrack),
+                        Description = DescribeEntry(entry.AudioTrack),
                         BehaviorHints = new BehaviorHintsDto
                         {
                             Filename = string.IsNullOrEmpty(source.Path) ? null : Path.GetFileName(source.Path),
@@ -227,12 +196,9 @@ public class AddonController : ControllerBase
                     };
                 }
 
-                var audioTracks = AudioTrackSelection.ForSource(source);
-                LogBuffer.AddLog($"[Stream] Source \"{source.Name}\": {audioTracks.Count} selectable audio track(s)", LogLevel.Info);
-                IEnumerable<StreamDto> entries = audioTracks.Count == 0
-                    ? [BuildEntry(audioTrack: null)]
-                    : audioTracks.Select(audioTrack => BuildEntry(audioTrack));
-                return entries;
+                var entries = EntryStreams.ForSource(source);
+                LogBuffer.AddLog($"[Stream] Source \"{source.Name}\": {entries.Count} stream entry(ies)", LogLevel.Info);
+                return entries.Select(BuildEntry);
             });
         }).ToList();
 
@@ -453,7 +419,7 @@ public class AddonController : ControllerBase
             // No local stream found; provide a Jellyseerr request stream if configured
             if (config.JellyseerrEnabled && !string.IsNullOrWhiteSpace(config.JellyseerrUrl))
             {
-                var title = await GetTitleFromCinemeta(imdbId, "movie");
+                var title = await GetTitleFromCinemeta(imdbId, "movie").ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(title))
                 {
                     var baseUrl = GetBaseUrl(config.PublicBaseUrl);
@@ -492,7 +458,7 @@ public class AddonController : ControllerBase
             // Episode not found - show Jellyseerr option if enabled
             if (config.JellyseerrEnabled && !string.IsNullOrWhiteSpace(config.JellyseerrUrl))
             {
-                var title = await GetTitleFromCinemeta(imdbId, "tv");
+                var title = await GetTitleFromCinemeta(imdbId, "tv").ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(title))
                 {
                     var baseUrl = GetBaseUrl(config.PublicBaseUrl);
